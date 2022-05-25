@@ -17,7 +17,16 @@ import {
     stringifyJsonOrBytes
 } from './transaction';
 import { FinalExecutionOutcome, TypedError, ErrorContext } from './providers';
-import { Finality, BlockId, ViewStateResult, AccountView, AccessKeyView, CodeResult, AccessKeyList, AccessKeyInfoView, FunctionCallPermissionView } from './providers/provider';
+import {
+    ViewStateResult,
+    AccountView,
+    AccessKeyView,
+    CodeResult,
+    AccessKeyList,
+    AccessKeyInfoView,
+    FunctionCallPermissionView,
+    BlockReference
+} from './providers/provider';
 import { Connection } from './connection';
 import { baseDecode, baseEncode } from 'borsh';
 import { PublicKey } from './utils/key_pair';
@@ -511,23 +520,24 @@ export class Account {
      * @param args Any arguments to the view contract method, wrapped in JSON
      * @param options.parse Parse the result of the call. Receives a Buffer (bytes array) and converts it to any object. By default result will be treated as json.
      * @param options.stringify Convert input arguments into a bytes array. By default the input is treated as a JSON.
+     * @param options.blockQuery specifies which block to query state at. By default returns last "optimistic" block (i.e. not necessarily finalized).
      * @returns {Promise<any>}
      */
     async viewFunction(
         contractId: string,
         methodName: string,
         args: any = {},
-        { parse = parseJsonFromRawResponse, stringify = bytesJsonStringify } = {}
+        { parse = parseJsonFromRawResponse, stringify = bytesJsonStringify, blockQuery = { finality: 'optimistic' } }: { parse?: (response: Uint8Array) => any; stringify?: (input: any) => Buffer; blockQuery?: BlockReference } = {}
     ): Promise<any> {
         this.validateArgs(args);
         const serializedArgs = stringify(args).toString('base64');
 
         const result = await this.connection.provider.query<CodeResult>({
             request_type: 'call_function',
+            ...blockQuery,
             account_id: contractId,
             method_name: methodName,
             args_base64: serializedArgs,
-            finality: 'optimistic'
         });
 
         if (result.logs) {
@@ -545,7 +555,7 @@ export class Account {
      * @param prefix allows to filter which keys should be returned. Empty prefix means all keys. String prefix is utf-8 encoded.
      * @param blockQuery specifies which block to query state at. By default returns last "optimistic" block (i.e. not necessarily finalized).
      */
-    async viewState(prefix: string | Uint8Array, blockQuery: { blockId: BlockId } | { finality: Finality } = { finality: 'optimistic' } ): Promise<Array<{ key: Buffer; value: Buffer}>> {
+    async viewState(prefix: string | Uint8Array, blockQuery: BlockReference = { finality: 'optimistic' } ): Promise<Array<{ key: Buffer; value: Buffer}>> {
         const { values } = await this.connection.provider.query<ViewStateResult>({
             request_type: 'view_state',
             ...blockQuery,
