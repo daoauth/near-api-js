@@ -2,7 +2,7 @@
  * NEAR RPC API request types and responses
  * @module
  */
-
+import { EventEmitter } from 'events';
 import { SignedTransaction } from '../transaction';
 
 export interface SyncInfo {
@@ -406,7 +406,7 @@ export type RpcQueryRequest = (ViewAccountRequest |
 
 
 /** @hidden */
-export abstract class Provider {
+export abstract class Provider extends EventEmitter {
     abstract status(): Promise<NodeStatusResult>;
 
     abstract sendTransaction(signedTransaction: SignedTransaction): Promise<FinalExecutionOutcome>;
