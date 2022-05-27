@@ -50,7 +50,7 @@ export class InMemorySigner extends Signer {
      * @param keyPair The keyPair to use for signing
      */
     static async fromKeyPair(networkId: string, accountId: string, keyPair: KeyPair): Promise<Signer> {
-        const keyStore = new InMemoryKeyStore()
+        const keyStore = new InMemoryKeyStore();
         await keyStore.setKey(networkId, accountId, keyPair);
         return new InMemorySigner(keyStore);
     }
@@ -101,5 +101,35 @@ export class InMemorySigner extends Signer {
 
     toString(): string {
         return `InMemorySigner(${this.keyStore})`;
+    }
+}
+
+
+/**
+ * Signs using in extension wallet.
+ */
+export class ExtensionWalletSigner extends Signer {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    async createKey(_accountId: string): Promise<PublicKey> {
+        return null;
+    }
+
+    async getPublicKey(): Promise<PublicKey> {
+        if ((window as any).dapp) {
+            const response = await (window as any).dapp.request({net: 'near:*', method: 'dapp:accounts'});
+            if (response && response.near && response.near.length > 0) {
+                return PublicKey.fromString(response.near[0]);
+            }
+        }
+        return null;
+    }
+
+    async signMessage(message: Uint8Array, accountId?: string, networkId?: string): Promise<Signature> {
+        if ((window as any).dapp) {
+            const hash = new Uint8Array(sha256.sha256.array(message));
+            const response = await (window as any).dapp.request({net: `near:${networkId || '*'}`, method: 'dapp:sign', params: accountId ? [hash, accountId] : [hash]});
+            return response || null;
+        }
+        return null;
     }
 }

@@ -1,5 +1,5 @@
-import { Provider, JsonRpcProvider } from './providers';
-import { Signer, InMemorySigner } from './signer';
+import { Provider, JsonRpcProvider, WalletRpcProvider } from './providers';
+import { Signer, InMemorySigner, ExtensionWalletSigner } from './signer';
 
 /**
  * @param config Contains connection info details
@@ -7,10 +7,14 @@ import { Signer, InMemorySigner } from './signer';
  */
 function getProvider(config: any): Provider {
     switch (config.type) {
-        case undefined:
-            return config;
-        case 'JsonRpcProvider': return new JsonRpcProvider({ ...config.args });
-        default: throw new Error(`Unknown provider type ${config.type}`);
+    case undefined:
+        return config;
+    case 'JsonRpcProvider':
+        return new JsonRpcProvider({ ...config.args });
+    case 'WalletRpcProvider': {
+        return new WalletRpcProvider();
+    }
+    default: throw new Error(`Unknown provider type ${config.type}`);
     }
 }
 
@@ -20,12 +24,14 @@ function getProvider(config: any): Provider {
  */
 function getSigner(config: any): Signer {
     switch (config.type) {
-        case undefined:
-            return config;
-        case 'InMemorySigner': {
-            return new InMemorySigner(config.keyStore);
-        }
-        default: throw new Error(`Unknown signer type ${config.type}`);
+    case undefined:
+        return config;
+    case 'InMemorySigner':
+        return new InMemorySigner(config.keyStore);
+    case 'ExtensionWalletSigner': {
+        return new ExtensionWalletSigner();
+    }
+    default: throw new Error(`Unknown signer type ${config.type}`);
     }
 }
 
