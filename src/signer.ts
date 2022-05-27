@@ -126,9 +126,9 @@ export class ExtensionWalletSigner extends Signer {
 
     async signMessage(message: Uint8Array, accountId?: string, networkId?: string): Promise<Signature> {
         if ((window as any).dapp) {
-            const hash = new Uint8Array(sha256.sha256.array(message));
-            const response = await (window as any).dapp.request({net: `near:${networkId || '*'}`, method: 'dapp:sign', params: accountId ? [hash, accountId] : [hash]});
-            return response || null;
+            const hex = Buffer.from(message).toString('base64');
+            const [ signature, publicKey ] = await (window as any).dapp.request({net: `near:${networkId || '*'}`, method: 'dapp:sign', params: accountId ? [hex, accountId] : [hex]});
+            return signature ? { signature, publicKey } : null;
         }
         return null;
     }
