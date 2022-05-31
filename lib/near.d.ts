@@ -20,6 +20,11 @@ export interface NearConfig {
     keyStore?: KeyStore;
     /** @hidden */
     signer?: Signer;
+    /** @hidden */
+    provider?: {
+        type: string;
+        args: any;
+    };
     /** @deprecated use {@link NearConfig.keyStore} */
     deps?: {
         keyStore: KeyStore;

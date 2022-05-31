@@ -23,6 +23,10 @@ export interface NearConfig {
     /** @hidden */
     signer?: Signer;
 
+    /** @hidden */
+    provider?: { type: string; args: any };
+
+
     /** @deprecated use {@link NearConfig.keyStore} */
     deps?: { keyStore: KeyStore };
 
@@ -84,7 +88,7 @@ export class Near {
         this.config = config;
         this.connection = Connection.fromConfig({
             networkId: config.networkId,
-            provider: { type: 'JsonRpcProvider', args: { url: config.nodeUrl, headers: config.headers } },
+            provider: config.provider || { type: 'JsonRpcProvider', args: { url: config.nodeUrl, headers: config.headers } },
             signer: config.signer || { type: 'InMemorySigner', keyStore: config.keyStore || (config.deps && config.deps.keyStore) }
         });
         if (config.masterAccount) {
