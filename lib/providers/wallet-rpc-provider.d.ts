@@ -9,7 +9,7 @@ export { TypedError, ErrorContext };
  */
 export declare class WalletRpcProvider extends Provider {
     /** @hidden */
-    readonly dapp: any;
+    private _dapp;
     private _network;
     private _account;
     get network(): string;

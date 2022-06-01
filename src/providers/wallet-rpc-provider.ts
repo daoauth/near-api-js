@@ -48,7 +48,7 @@ const REQUEST_RETRY_WAIT_BACKOFF = 1.5;
 export class WalletRpcProvider extends Provider {
 
     /** @hidden */
-    readonly dapp: any;
+    private _dapp: any;
     
     private _network = '';
     private _account = '';
@@ -64,12 +64,12 @@ export class WalletRpcProvider extends Provider {
     constructor() {
         super();
         if (window && (window as any).dapp) {
-            this.dapp = (window as any).dapp;
-            this.dapp.on('chainChanged', this.updateNetwork.bind(this));
-            this.dapp.on('accountsChanged', this.updateAccount.bind(this));
+            this._dapp = (window as any).dapp;
+            this._dapp.on('chainChanged', this.updateNetwork.bind(this));
+            this._dapp.on('accountsChanged', this.updateAccount.bind(this));
             this.init();
         } else {
-            this.dapp = {
+            this._dapp = {
                 request: () => {
                     return {
                         error: {
@@ -413,7 +413,7 @@ export class WalletRpcProvider extends Provider {
                     method,
                     params,
                 };
-                const response = await this.dapp.request({net: `near:${this._network}`, ...request });
+                const response = await this._dapp.request({net: `near:${this._network}`, ...request });
                 if (response.error) {
                     if (typeof response.error.data === 'object') {
                         if (typeof response.error.data.error_message === 'string' && typeof response.error.data.error_type === 'string') {
