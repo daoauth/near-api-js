@@ -65,8 +65,8 @@ export class WalletRpcProvider extends Provider {
         super();
         if (window && (window as any).dapp) {
             this.dapp = (window as any).dapp;
-            this.dapp.on('chainChanged', this.updateNetwork);
-            this.dapp.on('accountsChanged', this.updateAccount);
+            this.dapp.on('chainChanged', this.updateNetwork.bind(this));
+            this.dapp.on('accountsChanged', this.updateAccount.bind(this));
             this.init();
         } else {
             this.dapp = {
