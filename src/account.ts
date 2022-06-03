@@ -27,6 +27,7 @@ import { ServerError } from './utils/rpc_errors';
 import { DEFAULT_FUNCTION_CALL_GAS } from './constants';
 
 import exponentialBackoff from './utils/exponential-backoff';
+import { transactions } from './common-index';
 
 // Default number of retries with different nonce before giving up on a transaction.
 const TX_NONCE_RETRY_NUMBER = 12;
@@ -232,24 +233,41 @@ export class Account {
         let txHash, signedTx;
         // TODO: TX_NONCE (different constants for different uses of exponentialBackoff?)
         const result = await exponentialBackoff(TX_NONCE_RETRY_WAIT, TX_NONCE_RETRY_NUMBER, TX_NONCE_RETRY_WAIT_BACKOFF, async () => {
-            [txHash, signedTx] = await this.signTransaction(receiverId, actions);
-            const publicKey = signedTx.transaction.publicKey;
-
-            try {
-                return await this.connection.provider.sendTransaction(signedTx);
-            } catch (error) {
-                if (error.type === 'InvalidNonce') {
-                    logWarning(`Retrying transaction ${receiverId}:${baseEncode(txHash)} with new nonce.`);
-                    delete this.accessKeyByPublicKeyCache[publicKey.toString()];
-                    return null;
+            if (!(this.connection.provider as any).signAndSendTransaction) {
+                [txHash, signedTx] = await this.signTransaction(receiverId, actions);
+                const publicKey = signedTx.transaction.publicKey;
+    
+                try {
+                    return await this.connection.provider.sendTransaction(signedTx);
+                } catch (error) {
+                    if (error.type === 'InvalidNonce') {
+                        logWarning(`Retrying transaction ${receiverId}:${baseEncode(txHash)} with new nonce.`);
+                        delete this.accessKeyByPublicKeyCache[publicKey.toString()];
+                        return null;
+                    }
+                    if (error.type === 'Expired') {
+                        logWarning(`Retrying transaction ${receiverId}:${baseEncode(txHash)} due to expired block hash`);
+                        return null;
+                    }
+    
+                    error.context = new ErrorContext(baseEncode(txHash));
+                    throw error;
                 }
-                if (error.type === 'Expired') {
-                    logWarning(`Retrying transaction ${receiverId}:${baseEncode(txHash)} due to expired block hash`);
-                    return null;
+            } else {
+                const publicKey = (this.connection.provider as any).pubKey() as string;
+                const accessKeyInfo = await this.findAccessKey(receiverId, actions);
+                if (!accessKeyInfo) {
+                    throw new TypedError(`Can not sign transactions for account ${this.accountId} on network ${this.connection.networkId}, no matching key pair found in ${this.connection.signer}.`, 'KeyNotFound');
                 }
-
-                error.context = new ErrorContext(baseEncode(txHash));
-                throw error;
+                const { accessKey } = accessKeyInfo;
+        
+                const block = await this.connection.provider.block({ finality: 'final' });
+                const blockHash = block.header.hash;
+        
+                const nonce = ++accessKey.nonce;
+        
+                const transaction = transactions.createTransaction(this.accountId, PublicKey.fromString(publicKey), receiverId, nonce, actions, baseDecode(blockHash));
+                return (this.connection.provider as any).signAndSendTransaction(transaction);
             }
         });
         if (!result) {

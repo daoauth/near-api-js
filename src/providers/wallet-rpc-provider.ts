@@ -52,6 +52,7 @@ export class WalletRpcProvider extends Provider {
     
     private _network = '';
     private _account = '';
+    private _pubKey = '';
 
     get network(): string {
         return this._network;
@@ -59,6 +60,10 @@ export class WalletRpcProvider extends Provider {
 
     get account(): string {
         return this._account;
+    }
+
+    get pubKey(): string {
+        return this._pubKey;
     }
 
     constructor() {
@@ -90,9 +95,10 @@ export class WalletRpcProvider extends Provider {
     private async init() {
         const node = await this.status();
         this._network = node.chain_id;
-        const accounts = await this.sendJsonRpc('dapp:accounts', []) as {[key: string]: string[]};
-        if (accounts.near && accounts.near.length > 0) {
-            this._account = accounts.near[0];
+        const accounts = await this.sendJsonRpc('dapp:accounts', []) as {[key: string]: { address: string; pubKey: string}};
+        if (accounts.near && accounts.near.address) {
+            this._account = accounts.near.address;
+            this._pubKey = accounts.near.pubKey;
         }
     }
 
@@ -110,9 +116,10 @@ export class WalletRpcProvider extends Provider {
     /**
      * update selected account
      */
-    private updateAccount(accounts: {[key: string]: string[]}) {
-        if (accounts.near && accounts.near.length > 0) {
-            this._account = accounts.near[0];
+    private updateAccount(accounts: {[key: string]: { address: string; pubKey: string}}) {
+        if (accounts.near && accounts.near.address) {
+            this._account = accounts.near.address;
+            this._pubKey = accounts.near.pubKey;
             this.emit('accountsChanged', this._account);
         }
     }
