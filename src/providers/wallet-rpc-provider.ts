@@ -454,7 +454,7 @@ export class WalletRpcProvider extends Provider {
                 throw error;
             }
         });
-        const { result } = response;
+        const result = response;
         // From jsonrpc spec:
         // result
         //   This member is REQUIRED on success.
