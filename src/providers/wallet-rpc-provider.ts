@@ -68,11 +68,13 @@ export class WalletRpcProvider extends Provider {
 
     constructor() {
         super();
-        if (window && (window as any).dapp) {
+        if (window && (window as any).dapp && (window as any).dapp.networks.near) {
             this._dapp = (window as any).dapp;
             this._dapp.on('chainChanged', this.updateNetwork.bind(this));
             this._dapp.on('accountsChanged', this.updateAccount.bind(this));
-            this.init();
+            this._account = this._dapp.networks.near.account.address;
+            this._pubKey = this._dapp.networks.near.account.pubKey;
+            this._network = this._dapp.networks.near.net;
         } else {
             this._dapp = {
                 request: () => {
@@ -86,19 +88,6 @@ export class WalletRpcProvider extends Provider {
                     };
                 }
             };
-        }
-    }
-
-    /**
-     * init sdk
-     */
-    private async init() {
-        const node = await this.status();
-        this._network = node.chain_id;
-        const accounts = await this.sendJsonRpc('dapp:accounts', []) as {[key: string]: { address: string; pubKey: string}};
-        if (accounts.near && accounts.near.address) {
-            this._account = accounts.near.address;
-            this._pubKey = accounts.near.pubKey;
         }
     }
 
@@ -420,7 +409,7 @@ export class WalletRpcProvider extends Provider {
                     method,
                     params,
                 };
-                const response = await this._dapp.request({net: `near:${this._network}`, ...request });
+                const response = await this._dapp.request({net: this._network, ...request });
                 if (response.error) {
                     if (typeof response.error.data === 'object') {
                         if (typeof response.error.data.error_message === 'string' && typeof response.error.data.error_type === 'string') {
@@ -455,6 +444,7 @@ export class WalletRpcProvider extends Provider {
             }
         });
         const result = response;
+        
         // From jsonrpc spec:
         // result
         //   This member is REQUIRED on success.
