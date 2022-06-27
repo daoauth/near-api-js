@@ -116,7 +116,7 @@ export class ExtensionWalletSigner extends Signer {
 
     async getPublicKey(accountId?: string, networkId?: string): Promise<PublicKey> {
         if (accountId && networkId && (window as any).dapp && accountId && networkId) {
-            const response = await (window as any).dapp.request({net: `near:${networkId}`, method: 'dapp:accounts'});
+            const response = await (window as any).dapp.request('near', { method: 'dapp:accounts' });
             if (response && response.near && response.near.address === accountId) {
                 return PublicKey.fromString(response.near.pubKey);
             }
@@ -127,7 +127,7 @@ export class ExtensionWalletSigner extends Signer {
     async signMessage(message: Uint8Array, accountId?: string, networkId?: string): Promise<Signature> {
         if ((window as any).dapp) {
             const hex = Buffer.from(message).toString('base64');
-            const [ signature, publicKey ] = await (window as any).dapp.request({net: `near:${networkId || '*'}`, method: 'dapp:sign', params: accountId ? [hex, accountId] : [hex]});
+            const [ signature, publicKey ] = await (window as any).dapp.request('near', {method: 'dapp:sign', params: [hex]});
             return signature ? { signature, publicKey } : null;
         }
         return null;

@@ -66,6 +66,10 @@ export class WalletRpcProvider extends Provider {
         return this._pubKey;
     }
 
+    get isWalletProvider(): boolean {
+        return true;
+    }
+
     constructor() {
         super();
         if (window && (window as any).dapp) {

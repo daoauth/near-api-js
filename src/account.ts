@@ -16,7 +16,7 @@ import {
     SignedTransaction,
     stringifyJsonOrBytes
 } from './transaction';
-import { FinalExecutionOutcome, TypedError, ErrorContext } from './providers';
+import { FinalExecutionOutcome, TypedError, ErrorContext, WalletRpcProvider } from './providers';
 import { Finality, BlockId, ViewStateResult, AccountView, AccessKeyView, CodeResult, AccessKeyList, AccessKeyInfoView, FunctionCallPermissionView } from './providers/provider';
 import { Connection } from './connection';
 import { baseDecode, baseEncode } from 'borsh';
@@ -233,7 +233,22 @@ export class Account {
         let txHash, signedTx;
         // TODO: TX_NONCE (different constants for different uses of exponentialBackoff?)
         const result = await exponentialBackoff(TX_NONCE_RETRY_WAIT, TX_NONCE_RETRY_NUMBER, TX_NONCE_RETRY_WAIT_BACKOFF, async () => {
-            if (!(this.connection.provider as any).signAndSendTransaction) {
+            if ((this.connection.provider as any).isWalletProvider) {
+                const provider = this.connection.provider as WalletRpcProvider;
+                const accessKeyInfo = await this.findAccessKey(receiverId, actions);
+                if (!accessKeyInfo) {
+                    throw new TypedError(`Can not sign transactions for account ${this.accountId} on network ${this.connection.networkId}, no matching key pair found in ${this.connection.signer}.`, 'KeyNotFound');
+                }
+                const { accessKey } = accessKeyInfo;
+        
+                const block = await provider.block({ finality: 'final' });
+                const blockHash = block.header.hash;
+        
+                const nonce = ++accessKey.nonce;
+        
+                const transaction = transactions.createTransaction(this.accountId, PublicKey.fromString(provider.pubKey), receiverId, nonce, actions, baseDecode(blockHash));
+                return provider.signAndSendTransaction(transaction);
+            } else {
                 [txHash, signedTx] = await this.signTransaction(receiverId, actions);
                 const publicKey = signedTx.transaction.publicKey;
     
@@ -253,21 +268,6 @@ export class Account {
                     error.context = new ErrorContext(baseEncode(txHash));
                     throw error;
                 }
-            } else {
-                const publicKey = (this.connection.provider as any).pubKey() as string;
-                const accessKeyInfo = await this.findAccessKey(receiverId, actions);
-                if (!accessKeyInfo) {
-                    throw new TypedError(`Can not sign transactions for account ${this.accountId} on network ${this.connection.networkId}, no matching key pair found in ${this.connection.signer}.`, 'KeyNotFound');
-                }
-                const { accessKey } = accessKeyInfo;
-        
-                const block = await this.connection.provider.block({ finality: 'final' });
-                const blockHash = block.header.hash;
-        
-                const nonce = ++accessKey.nonce;
-        
-                const transaction = transactions.createTransaction(this.accountId, PublicKey.fromString(publicKey), receiverId, nonce, actions, baseDecode(blockHash));
-                return (this.connection.provider as any).signAndSendTransaction(transaction);
             }
         });
         if (!result) {

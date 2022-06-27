@@ -16,6 +16,7 @@ export declare class WalletRpcProvider extends Provider {
     get network(): string;
     get account(): string;
     get pubKey(): string;
+    get isWalletProvider(): boolean;
     constructor();
     /**
      * init sdk
