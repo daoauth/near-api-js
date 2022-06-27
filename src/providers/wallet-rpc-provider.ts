@@ -420,7 +420,7 @@ export class WalletRpcProvider extends Provider {
                     method,
                     params,
                 };
-                const response = await this._dapp.request({net: `near:${this._network}`, ...request });
+                const response = await this._dapp.request('near', { ...request });
                 if (response.error) {
                     if (typeof response.error.data === 'object') {
                         if (typeof response.error.data.error_message === 'string' && typeof response.error.data.error_type === 'string') {
