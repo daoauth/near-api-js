@@ -65,6 +65,7 @@ export declare class InMemorySigner extends Signer {
  * Signs using in extension wallet.
  */
 export declare class ExtensionWalletSigner extends Signer {
+    get isExtensionWalletSigner(): boolean;
     createKey(_accountId: string): Promise<PublicKey>;
     getPublicKey(accountId?: string, networkId?: string): Promise<PublicKey>;
     signMessage(message: Uint8Array, accountId?: string, networkId?: string): Promise<Signature>;

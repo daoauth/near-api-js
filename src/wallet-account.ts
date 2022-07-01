@@ -9,7 +9,7 @@ import depd from 'depd';
 import { Account, SignAndSendTransactionOptions } from './account';
 import { Near } from './near';
 import { KeyStore } from './key_stores';
-import { FinalExecutionOutcome } from './providers';
+import { FinalExecutionOutcome, WalletRpcProvider } from './providers';
 import { InMemorySigner } from './signer';
 import { Transaction, Action, SCHEMA, createTransaction } from './transaction';
 import { KeyPair, PublicKey } from './utils';
@@ -86,7 +86,7 @@ export class WalletConnection {
         this._networkId = near.config.networkId;
         this._walletBaseUrl = near.config.walletUrl;
         appKeyPrefix = appKeyPrefix || near.config.contractName || 'default';
-        this._keyStore = (near.connection.signer as InMemorySigner).keyStore;
+        this._keyStore = (near.connection.signer as InMemorySigner).keyStore; // TODO
         this._authData = authData || { allKeys: [] };
         this._authDataKey = authDataKey;
         if (!this.isSignedIn()) {
@@ -325,11 +325,16 @@ export class ConnectedWalletAccount extends Account {
         // TODO: Cache & listen for nonce updates for given access key
         const nonce = accessKey.access_key.nonce + 1;
         const transaction = createTransaction(this.accountId, publicKey, receiverId, nonce, actions, blockHash);
-        await this.walletConnection.requestSignTransactions({
-            transactions: [transaction],
-            meta: walletMeta,
-            callbackUrl: walletCallbackUrl
-        });
+
+        if((this.connection.provider as any).isWalletProvider) {
+            return await (this.connection.provider as WalletRpcProvider).signAndSendTransaction(transaction);
+        } else {
+            await this.walletConnection.requestSignTransactions({
+                transactions: [transaction],
+                meta: walletMeta,
+                callbackUrl: walletCallbackUrl
+            });    
+        }
 
         return new Promise((resolve, reject) => {
             setTimeout(() => {

@@ -109,6 +109,10 @@ export class InMemorySigner extends Signer {
  * Signs using in extension wallet.
  */
 export class ExtensionWalletSigner extends Signer {
+    get isExtensionWalletSigner(): boolean {
+        return true;
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async createKey(_accountId: string): Promise<PublicKey> {
         return null;

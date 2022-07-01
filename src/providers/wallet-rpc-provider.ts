@@ -424,28 +424,30 @@ export class WalletRpcProvider extends Provider {
                     method,
                     params,
                 };
-                const response = await this._dapp.request('near', { ...request });
-                if (response.error) {
-                    if (typeof response.error.data === 'object') {
-                        if (typeof response.error.data.error_message === 'string' && typeof response.error.data.error_type === 'string') {
+                const txHash = await this._dapp.request('near', { ...request });
+                if (typeof txHash !== 'string' || (txHash as any).error) {
+                    const error = (txHash as any).error;
+                    if (typeof error.data === 'object') {
+                        if (typeof error.data.error_message === 'string' && typeof error.data.error_type === 'string') {
                             // if error data has error_message and error_type properties, we consider that node returned an error in the old format
-                            throw new TypedError(response.error.data.error_message, response.error.data.error_type);
+                            throw new TypedError(error.data.error_message, error.data.error_type);
                         }
 
-                        throw parseRpcError(response.error.data);
+                        throw parseRpcError(error.data);
                     } else {
-                        const errorMessage = `[${response.error.code}] ${response.error.message}: ${response.error.data}`;
+                        const errorMessage = `[${error.code}] ${error.message}: ${error.data}`;
                         // NOTE: All this hackery is happening because structured errors not implemented
                         // TODO: Fix when https://github.com/nearprotocol/nearcore/issues/1839 gets resolved
-                        if (response.error.data === 'Timeout' || errorMessage.includes('Timeout error')
+                        if (error.data === 'Timeout' || errorMessage.includes('Timeout error')
                             || errorMessage.includes('query has timed out')) {
                             throw new TypedError(errorMessage, 'TimeoutError');
                         }
 
-                        throw new TypedError(errorMessage, getErrorTypeFromErrorMessage(response.error.data));
+                        throw new TypedError(errorMessage, getErrorTypeFromErrorMessage(error.data));
                     }
                 }
-                // Success when response.error is not exist
+                // Success when error is not exist
+                const response = await this.txStatusString(txHash, this._account);
                 return response;
             } catch (error) {
                 if (error.type === 'TimeoutError') {
