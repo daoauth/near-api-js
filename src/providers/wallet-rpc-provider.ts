@@ -28,7 +28,6 @@
  import exponentialBackoff from '../utils/exponential-backoff';
  import { parseRpcError, getErrorTypeFromErrorMessage } from '../utils/rpc_errors';
  import { Transaction, SignedTransaction } from '../transaction';
- import { fetchJson } from '../utils/web';
  
  /** @hidden */
  export { TypedError, ErrorContext };
@@ -421,15 +420,8 @@
                  };
              
                  if(method === 'tx'){
-                     let url = 'https://rpc.mainnet.near.org';
  
-                     if(this.network === 'testnet'){
-                         url = 'https://rpc.testnet.near.org';
-                     }
- 
-                     const response = await fetchJson({url}, JSON.stringify(request));
-                     console.log('----');
-                     console.log(response);
+                     const response = await this._dapp.request('near', { ...request });
  
                      if (response.error) {
                          if (typeof response.error.data === 'object') {
