@@ -19,10 +19,6 @@ export declare class WalletRpcProvider extends Provider {
     get isWalletProvider(): boolean;
     constructor();
     /**
-     * init sdk
-     */
-    private init;
-    /**
      * update selected chain id
      */
     private updateNetwork;

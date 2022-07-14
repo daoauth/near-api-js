@@ -421,8 +421,8 @@ export class WalletRpcProvider extends Provider {
                 const response = await this._dapp.request('near', { ...request });
                 if (typeof response === 'string') {
                     // Success when error is not exist
-                    const response = await this.txStatusString(response, this._account);
-                    return response;
+                    const tsStatus = await this.txStatusString(response, this._account);
+                    return tsStatus;
                 } else if ((response as any).error) {
                     const error = (response as any).error;
                     if (typeof error.data === 'object') {
@@ -444,6 +444,8 @@ export class WalletRpcProvider extends Provider {
                         throw new TypedError(errorMessage, getErrorTypeFromErrorMessage(error.data));
                     }
                 }
+                // Success when response.error is not exist
+                return response;
             } catch (error) {
                 if (error.type === 'TimeoutError') {
                     if (!process.env['NEAR_NO_LOGS']){
