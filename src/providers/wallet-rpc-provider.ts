@@ -136,8 +136,7 @@ export class WalletRpcProvider extends Provider {
      */
     async signAndSendTransaction(transaction: Transaction): Promise<FinalExecutionOutcome> {
         const bytes = transaction.encode();
-        const txHash = await this.sendJsonRpc('dapp:sendTransaction', [Buffer.from(bytes).toString('base64')]);
-        return this.txStatus(txHash as any, this.account);
+        return this.sendJsonRpc('dapp:sendTransaction', [Buffer.from(bytes).toString('base64')]);
     }
 
     /**
@@ -148,8 +147,7 @@ export class WalletRpcProvider extends Provider {
      */
     async sendTransaction(signedTransaction: SignedTransaction): Promise<FinalExecutionOutcome> {
         const bytes = signedTransaction.encode();
-        const txHash = await this.sendJsonRpc('broadcast_tx_commit', [Buffer.from(bytes).toString('base64')]);
-        return this.txStatus(txHash as any, this.account);
+        return this.sendJsonRpc('broadcast_tx_commit', [Buffer.from(bytes).toString('base64')]);
     }
 
     /**
@@ -160,8 +158,7 @@ export class WalletRpcProvider extends Provider {
      */
     async sendTransactionAsync(signedTransaction: SignedTransaction): Promise<FinalExecutionOutcome> {
         const bytes = signedTransaction.encode();
-        const txHash = await this.sendJsonRpc('broadcast_tx_async', [Buffer.from(bytes).toString('base64')]);
-        return this.txStatus(txHash as any, this.account);
+        return this.sendJsonRpc('broadcast_tx_async', [Buffer.from(bytes).toString('base64')]);
     }
 
     /**
@@ -421,39 +418,19 @@ export class WalletRpcProvider extends Provider {
                     id: (_nextId++),
                     jsonrpc: '2.0'
                 };
-
-                if(method === 'tx'){
-                    const response = await this._dapp.request('near', { ...request });
-                    if (response.error) {
-                        if (typeof response.error.data === 'object') {
-                            if (typeof response.error.data.error_message === 'string' && typeof response.error.data.error_type === 'string') {
-                                // if error data has error_message and error_type properties, we consider that node returned an error in the old format
-                                throw new TypedError(response.error.data.error_message, response.error.data.error_type);
-                            }
-
-                            throw parseRpcError(response.error.data);
-                        } else {
-                            const errorMessage = `[${response.error.code}] ${response.error.message}: ${response.error.data}`;
-                            // NOTE: All this hackery is happening because structured errors not implemented
-                            // TODO: Fix when https://github.com/nearprotocol/nearcore/issues/1839 gets resolved
-                            if (response.error.data === 'Timeout' || errorMessage.includes('Timeout error')
-                                || errorMessage.includes('query has timed out')) {
-                                throw new TypedError(errorMessage, 'TimeoutError');
-                            }
-                            throw new TypedError(errorMessage, getErrorTypeFromErrorMessage(response.error.data));
-                        }
-                    }
+                const response = await this._dapp.request('near', { ...request });
+                if (typeof response === 'string') {
+                    // Success when error is not exist
+                    const response = await this.txStatusString(response, this._account);
                     return response;
-                }
-                const txHash = await this._dapp.request('near', { ...request });
-                if (typeof txHash !== 'string' || (txHash as any).error) {
-                    const error = (txHash as any).error;
+                } else if ((response as any).error) {
+                    const error = (response as any).error;
                     if (typeof error.data === 'object') {
                         if (typeof error.data.error_message === 'string' && typeof error.data.error_type === 'string') {
                             // if error data has error_message and error_type properties, we consider that node returned an error in the old format
                             throw new TypedError(error.data.error_message, error.data.error_type);
                         }
-        
+
                         throw parseRpcError(error.data);
                     } else {
                         const errorMessage = `[${error.code}] ${error.message}: ${error.data}`;
@@ -463,11 +440,10 @@ export class WalletRpcProvider extends Provider {
                             || errorMessage.includes('query has timed out')) {
                             throw new TypedError(errorMessage, 'TimeoutError');
                         }
-        
+
                         throw new TypedError(errorMessage, getErrorTypeFromErrorMessage(error.data));
                     }
                 }
-                return txHash;
             } catch (error) {
                 if (error.type === 'TimeoutError') {
                     if (!process.env['NEAR_NO_LOGS']){
