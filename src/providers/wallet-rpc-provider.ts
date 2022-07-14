@@ -41,6 +41,9 @@ const REQUEST_RETRY_WAIT = 500;
 // Exponential back off for waiting to retry.
 const REQUEST_RETRY_WAIT_BACKOFF = 1.5;
 
+/// Keep ids unique across all connections.
+let _nextId = 123;
+
 /**
  * Client class to interact with the NEAR RPC API.
  * @see {@link https://github.com/near/nearcore/tree/master/chain/jsonrpc}
@@ -76,7 +79,9 @@ export class WalletRpcProvider extends Provider {
             this._dapp = (window as any).dapp;
             this._dapp.on('chainChanged', this.updateNetwork.bind(this));
             this._dapp.on('accountsChanged', this.updateAccount.bind(this));
-            this.init();
+            this._account = this._dapp.networks.near.account.address;
+            this._pubKey = this._dapp.networks.near.account.pubKey;
+            this._network = this._dapp.networks.near.chain;
         } else {
             this._dapp = {
                 request: () => {
@@ -90,19 +95,6 @@ export class WalletRpcProvider extends Provider {
                     };
                 }
             };
-        }
-    }
-
-    /**
-     * init sdk
-     */
-    private async init() {
-        const node = await this.status();
-        this._network = node.chain_id;
-        const accounts = await this.sendJsonRpc('dapp:accounts', []) as {[key: string]: { address: string; pubKey: string}};
-        if (accounts.near && accounts.near.address) {
-            this._account = accounts.near.address;
-            this._pubKey = accounts.near.pubKey;
         }
     }
 
@@ -423,10 +415,16 @@ export class WalletRpcProvider extends Provider {
                 const request = {
                     method,
                     params,
+                    id: (_nextId++),
+                    jsonrpc: '2.0'
                 };
-                const txHash = await this._dapp.request('near', { ...request });
-                if (typeof txHash !== 'string' || (txHash as any).error) {
-                    const error = (txHash as any).error;
+                const response = await this._dapp.request('near', { ...request });
+                if (typeof response === 'string') {
+                    // Success when error is not exist
+                    const response = await this.txStatusString(response, this._account);
+                    return response;
+                } else if ((response as any).error) {
+                    const error = (response as any).error;
                     if (typeof error.data === 'object') {
                         if (typeof error.data.error_message === 'string' && typeof error.data.error_type === 'string') {
                             // if error data has error_message and error_type properties, we consider that node returned an error in the old format
@@ -446,9 +444,6 @@ export class WalletRpcProvider extends Provider {
                         throw new TypedError(errorMessage, getErrorTypeFromErrorMessage(error.data));
                     }
                 }
-                // Success when error is not exist
-                const response = await this.txStatusString(txHash, this._account);
-                return response;
             } catch (error) {
                 if (error.type === 'TimeoutError') {
                     if (!process.env['NEAR_NO_LOGS']){
