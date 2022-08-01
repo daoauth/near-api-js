@@ -44,6 +44,19 @@ const REQUEST_RETRY_WAIT_BACKOFF = 1.5;
 /// Keep ids unique across all connections.
 let _nextId = 123;
 
+export interface RequestParams {
+    jsonrpc: '2.0';
+    id: number;
+    method: string;
+    params: object;
+}
+
+export interface ProviderProxy {
+    getAccount: () => Promise<string>;
+    request: (args: RequestParams) => Promise<any>;
+    on: (message: string, listener: (...args: any[]) => void ) => void;
+}
+
 /**
  * Client class to interact with the NEAR RPC API.
  * @see {@link https://github.com/near/nearcore/tree/master/chain/jsonrpc}
@@ -51,7 +64,7 @@ let _nextId = 123;
 export class WalletRpcProvider extends Provider {
 
     /** @hidden */
-    private _dapp: any;
+    private _proxy: ProviderProxy | null = null;
     
     private _network = '';
     private _account = '';
@@ -73,29 +86,11 @@ export class WalletRpcProvider extends Provider {
         return true;
     }
 
-    constructor() {
+    constructor(proxy: ProviderProxy) {
         super();
-        if (window && (window as any).dapp) {
-            this._dapp = (window as any).dapp;
-            this._dapp.on('chainChanged', this.updateNetwork.bind(this));
-            this._dapp.on('accountsChanged', this.updateAccount.bind(this));
-            this._account = this._dapp.networks.near.account.address;
-            this._pubKey = this._dapp.networks.near.account.pubKey;
-            this._network = this._dapp.networks.near.chain;
-        } else {
-            this._dapp = {
-                request: () => {
-                    return {
-                        error: {
-                            data: {
-                                error_message: 'provider is not activated',
-                                error_type: 'unknown',
-                            }
-                        },
-                    };
-                }
-            };
-        }
+        this._proxy = proxy;
+        this._proxy.on('chainChanged', this.updateNetwork.bind(this));
+        this._proxy.on('accountsChanged', this.updateAccount.bind(this));
     }
 
     /**
@@ -412,16 +407,16 @@ export class WalletRpcProvider extends Provider {
     async sendJsonRpc<T>(method: string, params: object): Promise<T> {
         const response = await exponentialBackoff(REQUEST_RETRY_WAIT, REQUEST_RETRY_NUMBER, REQUEST_RETRY_WAIT_BACKOFF, async () => {
             try {
-                const request = {
+                const request: RequestParams = {
                     method,
                     params,
                     id: (_nextId++),
                     jsonrpc: '2.0'
                 };
-                const response = await this._dapp.request('near', { ...request });
-                if (typeof response === 'string') {
+                const response = await this._proxy.request(request);
+                if (Array.isArray(response)) {
                     // Success when error is not exist
-                    const tsStatus = await this.txStatusString(response, this._account);
+                    const tsStatus = await this.txStatusString(response[0], this._account);
                     return tsStatus;
                 } else if ((response as any).error) {
                     const error = (response as any).error;

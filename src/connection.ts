@@ -1,4 +1,5 @@
 import { Provider, JsonRpcProvider, WalletRpcProvider } from './providers';
+import { ProviderProxy } from './providers/wallet-rpc-provider';
 import { Signer, InMemorySigner, ExtensionWalletSigner } from './signer';
 
 /**
@@ -12,7 +13,7 @@ function getProvider(config: any): Provider {
     case 'JsonRpcProvider':
         return new JsonRpcProvider({ ...config.args });
     case 'WalletRpcProvider': {
-        return new WalletRpcProvider();
+        return new WalletRpcProvider(config.providerProxy as ProviderProxy);
     }
     default: throw new Error(`Unknown provider type ${config.type}`);
     }

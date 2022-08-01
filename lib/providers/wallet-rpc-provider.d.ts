@@ -3,13 +3,24 @@ import { TypedError, ErrorContext } from '../utils/errors';
 import { Transaction, SignedTransaction } from '../transaction';
 /** @hidden */
 export { TypedError, ErrorContext };
+export interface RequestParams {
+    jsonrpc: '2.0';
+    id: number;
+    method: string;
+    params: object;
+}
+export interface ProviderProxy {
+    getAccount: () => Promise<string>;
+    request: (args: RequestParams) => Promise<any>;
+    on: (message: string, listener: (...args: any[]) => void) => void;
+}
 /**
  * Client class to interact with the NEAR RPC API.
  * @see {@link https://github.com/near/nearcore/tree/master/chain/jsonrpc}
  */
 export declare class WalletRpcProvider extends Provider {
     /** @hidden */
-    private _dapp;
+    private _proxy;
     private _network;
     private _account;
     private _pubKey;
@@ -17,7 +28,7 @@ export declare class WalletRpcProvider extends Provider {
     get account(): string;
     get pubKey(): string;
     get isWalletProvider(): boolean;
-    constructor();
+    constructor(proxy: ProviderProxy);
     /**
      * update selected chain id
      */
