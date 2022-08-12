@@ -304,6 +304,11 @@
     exec-sh "^0.3.2"
     minimist "^1.2.0"
 
+"@dsrv/jsi@^0.0.2":
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/@dsrv/jsi/-/jsi-0.0.2.tgz#548322118a292fd737d68573a6a09d5161f5252c"
+  integrity sha512-3noGZStgrT4vP+DJptZ1tasGaGtIzolTWZA/SkbrwtECHtY54gT6AV4OqI2VQlVBCBdyuZyO60QC6ckCJfRLTg==
+
 "@istanbuljs/load-nyc-config@^1.0.0":
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@istanbuljs/load-nyc-config/-/load-nyc-config-1.1.0.tgz#fd3db1d59ecf7cf121e80650bb86712f9b55eced"
