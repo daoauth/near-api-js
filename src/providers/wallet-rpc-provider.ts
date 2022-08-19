@@ -86,11 +86,41 @@ export class WalletRpcProvider extends Provider {
         return true;
     }
 
+    /*
+        class ProviderProxy {
+            constructor() {}
+
+            async getAccount() {
+                const result = await (window as any).dapp.request('near', { methode: 'dapp:accounts' });
+                return result['near'] && result['near'].address ? result['near'].address : '';
+            }
+
+            async request(args: RequestParams) {
+                if (args.method === 'signAndSendTransaction') {
+                    args.method = 'dapp:sendTransaction';
+                }
+                const result = await (window as any).dapp.request('near', args);
+                return result;
+            }
+
+            on(message: string, listener: (...args: any[]) => void ){
+                (window as any).dapp.on(message, listener);
+            }
+        }
+
+        const provider = new ProviderProxy();
+        const walletProvider = new WalletRpcProvider(provider);
+    */
     constructor(proxy: ProviderProxy) {
         super();
         this._proxy = proxy;
         this._proxy.on('chainChanged', this.updateNetwork.bind(this));
         this._proxy.on('accountsChanged', this.updateAccount.bind(this));
+        this.init();
+    }
+
+    private async init() {
+        this._account = await this._proxy.getAccount();
     }
 
     /**
@@ -131,7 +161,7 @@ export class WalletRpcProvider extends Provider {
      */
     async signAndSendTransaction(transaction: Transaction): Promise<FinalExecutionOutcome> {
         const bytes = transaction.encode();
-        return this.sendJsonRpc('dapp:sendTransaction', [Buffer.from(bytes).toString('base64')]);
+        return this.sendJsonRpc('signAndSendTransaction', [Buffer.from(bytes).toString('base64')]);
     }
 
     /**

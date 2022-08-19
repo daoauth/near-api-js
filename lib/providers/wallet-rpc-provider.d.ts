@@ -29,6 +29,7 @@ export declare class WalletRpcProvider extends Provider {
     get pubKey(): string;
     get isWalletProvider(): boolean;
     constructor(proxy: ProviderProxy);
+    private init;
     /**
      * update selected chain id
      */
