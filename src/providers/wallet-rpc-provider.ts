@@ -130,7 +130,6 @@ export class WalletRpcProvider extends Provider {
         const parsed = chainId.split(':');
         if (parsed[0] === 'near') {
             this._network = parsed[1];
-            this.emit('chainChanged', this._network);
         }
     }
 
@@ -141,8 +140,14 @@ export class WalletRpcProvider extends Provider {
         if (accounts.near && accounts.near.address) {
             this._account = accounts.near.address;
             this._pubKey = accounts.near.pubKey;
-            this.emit('accountsChanged', this._account);
         }
+    }
+
+    /**
+     * Add a new listener (eg: chainChanged, accountsChanged)
+     */
+    on(message: string, listener: (...args: any[]) => void ): void {
+        this._proxy.on(message, listener);
     }
 
     /**

@@ -39,6 +39,10 @@ export declare class WalletRpcProvider extends Provider {
      */
     private updateAccount;
     /**
+     * Add a new listener (eg: chainChanged, accountsChanged)
+     */
+    on(message: string, listener: (...args: any[]) => void): void;
+    /**
      * Gets the RPC's status
      * @see {@link https://docs.near.org/docs/develop/front-end/rpc#general-validator-status}
      */

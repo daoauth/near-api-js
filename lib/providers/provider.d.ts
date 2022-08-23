@@ -1,9 +1,7 @@
-/// <reference types="node" />
 /**
  * NEAR RPC API request types and responses
  * @module
  */
-import { EventEmitter } from 'events';
 import { SignedTransaction } from '../transaction';
 export interface SyncInfo {
     latest_block_hash: string;
@@ -341,7 +339,7 @@ export interface CallFunctionRequest {
 }
 export declare type RpcQueryRequest = (ViewAccountRequest | ViewCodeRequest | ViewStateRequest | ViewAccountRequest | ViewAccessKeyRequest | ViewAccessKeyListRequest | CallFunctionRequest) & BlockReference;
 /** @hidden */
-export declare abstract class Provider extends EventEmitter {
+export declare abstract class Provider {
     abstract status(): Promise<NodeStatusResult>;
     abstract sendTransaction(signedTransaction: SignedTransaction): Promise<FinalExecutionOutcome>;
     abstract sendTransactionAsync(signedTransaction: SignedTransaction): Promise<FinalExecutionOutcome>;
