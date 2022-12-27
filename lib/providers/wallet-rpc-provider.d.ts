@@ -10,7 +10,10 @@ export interface RequestParams {
     params: object;
 }
 export interface ProviderProxy {
-    getAccount: () => Promise<string>;
+    getAccount: () => Promise<{
+        address: string;
+        pubKey: string;
+    }>;
     request: (args: RequestParams) => Promise<any>;
     on: (message: string, listener: (...args: any[]) => void) => void;
 }

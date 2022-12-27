@@ -52,7 +52,7 @@ export interface RequestParams {
 }
 
 export interface ProviderProxy {
-    getAccount: () => Promise<string>;
+    getAccount: () => Promise<{ address: string; pubKey: string }>;
     request: (args: RequestParams) => Promise<any>;
     on: (message: string, listener: (...args: any[]) => void ) => void;
 }
@@ -120,7 +120,7 @@ export class WalletRpcProvider extends Provider {
     }
 
     private async init() {
-        this._account = await this._proxy.getAccount();
+        this._account = (await this._proxy.getAccount()).address;
     }
 
     /**
